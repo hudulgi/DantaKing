@@ -6,6 +6,7 @@ import win32com.client
 import ctypes
 import pandas as pd
 import datetime
+from dt_alimi import *
 
 form_class = uic.loadUiType("DantaKing.ui")[0]
 
@@ -38,6 +39,12 @@ def InitPlusCheck():
 
     return True
 
+
+################################################
+# Telegram 메세지 전송 함수
+def telegram(msg):
+    bot.sendMessage(myId, msg)
+    return True
 
 ################################################
 # CpEvent: 실시간 이벤트 수신 클래스
@@ -133,7 +140,9 @@ class CpEvent:
             conc['장부가'] = self.client.GetHeaderValue(21)
             conc['매도가능수량'] = self.client.GetHeaderValue(22)
 
-            self.caller.textBrowser.append("%s %s %s %s %s" % (conc['체결플래그'], conc['매수매도'], conc['종목명'], conc['주문수량'], conc['주문가격']))
+            info_txt = "%s %s %s %s %s" % (conc['체결플래그'], conc['매수매도'], conc['종목명'], conc['주문수량'], conc['주문가격'])
+            self.caller.textBrowser.append(info_txt)
+            telegram(info_txt)
             self.caller.updateJangoCont(conc)
 
             return
@@ -441,6 +450,9 @@ class MyWindow(QMainWindow, form_class):
         # 감시시작
         self.StartWatch()
 
+        # 텔레그램 메세지 전송
+        telegram("단타킹 프로그램 시작")
+
     def timeout(self):
         current_time = QTime.currentTime()
         text_time = current_time.toString("hh:mm:ss")
@@ -645,6 +657,7 @@ class MyWindow(QMainWindow, form_class):
             if curPrice >= objPrice and current_time < limit_time:
                 target_data['주문상태'] = 1
                 self.textBrowser.append("목표 매수가 도달 %s @%s" % (code, text_time))
+                telegram("목표 매수가 도달 %s %s @%s" % (code, target_data['name'], text_time))
                 self.objCur[code].Unsubscribe()
                 #self.sendBuyOrder(code)
                 amount = divmod(1000000 * tgScale, adjPrice)[0]
