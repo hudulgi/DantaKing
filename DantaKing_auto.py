@@ -6,7 +6,9 @@ import win32com.client
 import ctypes
 import pandas as pd
 import datetime
+import time
 from dt_alimi import *
+from multiprocessing import Process, Queue
 
 form_class = uic.loadUiType("DantaKing.ui")[0]
 
@@ -45,6 +47,12 @@ def InitPlusCheck():
 def telegram(msg):
     bot.sendMessage(myId, msg)
     return True
+
+
+def telegram_ch(msg):
+    bot.sendMessage("@dantaking_ch", msg)
+    return True
+
 
 ################################################
 # CpEvent: 실시간 이벤트 수신 클래스
@@ -337,8 +345,7 @@ class CpMarketEye:
 ################################################
 # 주식 주문 처리
 class CpRPOrder:
-    def __init__(self, caller):
-        self.caller = caller
+    def __init__(self):
         self.acc = g_objCpTrade.AccountNumber[0]  # 계좌번호
         self.accFlag = g_objCpTrade.GoodsList(self.acc, 1)  # 주식상품 구분
         #print(self.acc, self.accFlag[0])
@@ -347,7 +354,6 @@ class CpRPOrder:
     def buyOrder(self, code, price, amount):
         # 주식 매수 주문
         #print("신규 매수", code, price, amount)
-        #self.caller.textBrowser.append("매수 %s %d %d" % (code, price, amount))
 
         self.objOrder.SetInputValue(0, "2")  # 2: 매수
         self.objOrder.SetInputValue(1, self.acc)  # 계좌번호
@@ -406,7 +412,7 @@ class CpRPOrder:
 ################################################
 # 테스트를 위한 메인 화면
 class MyWindow(QMainWindow, form_class):
-    def __init__(self):
+    def __init__(self, q):
         super().__init__()
         self.setupUi(self)
 
@@ -426,14 +432,14 @@ class MyWindow(QMainWindow, form_class):
         self.objRPCur = CpRPCurrentPrice()
 
         # 주문
-        self.objRPOrder = CpRPOrder(self)
+        #self.objRPOrder = CpRPOrder()  # 멀티프로세스 방식으로 변경하여 불필요
 
         # 실시간 주문 체결
         self.objConclusion = CpPBConclusion()
 
         self.btnStart.clicked.connect(self.StartWatch)
         self.btnStop.clicked.connect(self.StopSubscribe)
-        self.btnExit.clicked.connect(self.btnExit_clicked)
+        self.btnExit.clicked.connect(self.close)
 
         # 잔고 요청
         self.obj6033.requestJango(self)
@@ -452,6 +458,16 @@ class MyWindow(QMainWindow, form_class):
 
         # 텔레그램 메세지 전송
         telegram("단타킹 프로그램 시작")
+
+        # 주문 queue
+        self.q = q
+
+    def closeEvent(self, QCloseEvent):
+        print('close')
+        self.StopSubscribe()
+        self.q.put(None)
+        self.deleteLater()
+        QCloseEvent.accept()
 
     def timeout(self):
         current_time = QTime.currentTime()
@@ -510,12 +526,6 @@ class MyWindow(QMainWindow, form_class):
 
         # 실시간 주문 체결 요청
         self.objConclusion.Subscribe('', self)
-
-    def btnExit_clicked(self):
-        self.StopSubscribe()
-        exit()
-
-        return
 
     def printJango(self):
         item_count = len(self.jangoData)
@@ -657,13 +667,12 @@ class MyWindow(QMainWindow, form_class):
             if curPrice >= objPrice and current_time < limit_time:
                 target_data['주문상태'] = 1
                 self.textBrowser.append("목표 매수가 도달 %s @%s" % (code, text_time))
-                telegram("목표 매수가 도달 %s %s @%s" % (code, target_data['name'], text_time))
+                #telegram("목표 매수가 도달 %s %s @%s" % (code, target_data['name'], text_time))
+                telegram_ch("<매수알림>\n%s %s\n매수 기준가 %i원 이하" % (code, target_data['name'], objPrice))
                 self.objCur[code].Unsubscribe()
-                #self.sendBuyOrder(code)
+
                 amount = divmod(1000000 * tgScale, adjPrice)[0]
-                if self.objRPOrder.buyOrder(code, adjPrice, amount) is not True:
-                    target_data['주문상태'] = 0
-                    self.objCur[code].Subscribe()
+                self.q.put((code, adjPrice, amount))
 
         elif conc_state == 1 and code in self.jangoData:
             self.upjangoCurData(code)
@@ -709,9 +718,44 @@ class MyWindow(QMainWindow, form_class):
             self.objRPOrder.buyOrder(code, price, amount)
 
 
-if __name__ == "__main__":
+################################################
+# MULTIPROCESS 함수
+
+def run_gui(q):
+    # GUI 구동
     app = QApplication(sys.argv)
-    myWindow = MyWindow()
+    myWindow = MyWindow(q)
     myWindow.show()
     app.exec_()
 
+
+def order(q):
+    # 주문
+    if InitPlusCheck() == False:
+        return
+    rpOrder = CpRPOrder()
+
+    while True:
+        arg = q.get()
+        if arg is None:
+            print("shutting down")
+            return
+        print(arg)
+        code, price, amount = arg
+        while rpOrder.buyOrder(code, price, amount) is False:
+            time.sleep(2)
+
+
+if __name__ == "__main__":
+    main_q = Queue()
+    process_gui = Process(target=run_gui, args=(main_q,))  # GUI 구동 프로세스
+    process_order = Process(target=order, args=(main_q,))  # 주문 프로세스
+    process_gui.start()
+    process_order.start()
+
+    main_q.close()
+    main_q.join_thread()
+
+    process_gui.join()
+    process_order.join()
+    print('end')
