@@ -462,6 +462,9 @@ class MyWindow(QMainWindow, form_class):
         # 주문 queue
         self.q = q
 
+        # 물타기 리스트
+        self.multagi = list()
+
     def closeEvent(self, QCloseEvent):
         print('close')
         self.StopSubscribe()
@@ -685,6 +688,12 @@ class MyWindow(QMainWindow, form_class):
         item['대비'] = curData['diff']
         item['거래량'] = curData['vol']
         profit = (item['현재가'] * 0.9975 / item['장부가'] - 1) * 100
+
+        # 물타기 추가
+        if profit < -5:
+            if code not in self.multagi:
+                self.multagi.append(code)
+                telegram("물타기 알림: %s" % (item['종목명']))
 
         # 잔고 테이블 현재가, 수익률 업데이트
         searchResult = self.tableWidget_jango.findItems(code, Qt.MatchExactly)
