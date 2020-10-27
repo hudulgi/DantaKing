@@ -11,6 +11,8 @@ from dt_alimi import *
 from multiprocessing import Process, Queue
 
 form_class = uic.loadUiType("DantaKing.ui")[0]
+data_path = "C:\\dt_data"
+today = datetime.datetime.now().date()
 
 ################################################
 # PLUS 공통 OBJECT
@@ -674,7 +676,7 @@ class MyWindow(QMainWindow, form_class):
                 telegram_ch("<매수알림>\n%s %s\n매수 기준가 %i원 이하" % (code, target_data['name'], objPrice))
                 self.objCur[code].Unsubscribe()
 
-                amount = divmod(1000000 * tgScale, adjPrice)[0]
+                amount = divmod(3600000 * tgScale, adjPrice)[0]
                 self.q.put((code, adjPrice, amount))
 
         elif conc_state == 1 and code in self.jangoData:
@@ -743,6 +745,7 @@ def order(q):
     if InitPlusCheck() == False:
         return
     rpOrder = CpRPOrder()
+    buy_list = BuyList()
 
     while True:
         arg = q.get()
@@ -753,6 +756,21 @@ def order(q):
         code, price, amount = arg
         while rpOrder.buyOrder(code, price, amount) is False:
             time.sleep(2)
+        buy_list.write(code)
+
+
+################################################
+# 매수내역 출력
+
+class BuyList:
+    def __init__(self):
+        self.name = data_path + "\\buy_list\\buy_" + today.strftime("%y%m%d") + ".csv"
+        with open(self.name, 'w') as f:
+            f.write("code\n")
+
+    def write(self, msg):
+        with open(self.name, 'a') as f:
+            f.write(msg + "\n")
 
 
 if __name__ == "__main__":
