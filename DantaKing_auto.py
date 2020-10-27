@@ -9,6 +9,7 @@ import datetime
 import time
 from dt_alimi import *
 from multiprocessing import Process, Queue
+import os
 
 form_class = uic.loadUiType("DantaKing.ui")[0]
 data_path = "C:\\dt_data"
@@ -740,6 +741,27 @@ def run_gui(q):
     app.exec_()
 
 
+################################################
+# 매수내역 출력
+
+class BuyList:
+    """
+    종가매매를 위해 매수내역 출력
+    """
+    def __init__(self):
+        self.name = data_path + "\\buy_list\\buy_" + today.strftime("%y%m%d") + ".csv"
+        self.file_init()
+
+    def file_init(self):
+        if not os.path.exists(self.name):  # 파일이 존재하지 않는 경우에만 초기화 진행
+            with open(self.name, 'w') as f:
+                f.write("code\n")
+
+    def write(self, msg):
+        with open(self.name, 'a') as f:
+            f.write(msg + "\n")
+
+
 def order(q):
     # 주문
     if InitPlusCheck() == False:
@@ -757,20 +779,6 @@ def order(q):
         while rpOrder.buyOrder(code, price, amount) is False:
             time.sleep(2)
         buy_list.write(code)
-
-
-################################################
-# 매수내역 출력
-
-class BuyList:
-    def __init__(self):
-        self.name = data_path + "\\buy_list\\buy_" + today.strftime("%y%m%d") + ".csv"
-        with open(self.name, 'w') as f:
-            f.write("code\n")
-
-    def write(self, msg):
-        with open(self.name, 'a') as f:
-            f.write(msg + "\n")
 
 
 if __name__ == "__main__":
