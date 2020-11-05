@@ -12,7 +12,7 @@ from multiprocessing import Process, Queue
 import os
 
 form_class = uic.loadUiType("DantaKing.ui")[0]
-data_path = "C:\\dt_data"
+data_path = "C:\\CloudStation\\dt_data"
 today = datetime.datetime.now().date()
 
 ################################################
