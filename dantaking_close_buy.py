@@ -18,7 +18,7 @@ print(items2)
 InitPlusCheck()
 
 account = g_objCpTrade.AccountNumber[1]  # 종가매매 계좌번호
-unit_price = 1000000  # 종목당 매수금액
+unit_price = 500000  # 종목당 매수금액
 
 cp_order = CpRPOrder(account)
 cp_price = CpRPCurrentPrice()
@@ -30,7 +30,7 @@ for cd in items2:
     if item['예상플래그'] == '1':
         curPrice = item['cur']
 
-        amount = divmod(unit_price, curPrice)[0]
+        amount = max(divmod(unit_price, curPrice)[0], 1)  # 종목당 매수금액보다 비싼 종목은 1주 매수
         while cp_order.buy_order(cd, amount) is False:
             time.sleep(2)
 
