@@ -13,6 +13,9 @@ import os
 
 form_class = uic.loadUiType("DantaKing.ui")[0]
 data_path = "C:\\CloudStation\\dt_data"
+buy_path = data_path + "\\daily_data\\buy_list"
+target_path = data_path + "\\daily_data\\target_list"
+unit_price = 3600000  # 종목 당 매수금액
 today = datetime.datetime.now().date()
 
 ################################################
@@ -491,14 +494,17 @@ class MyWindow(QMainWindow, form_class):
     def import_targets(self):
         dt = datetime.datetime.now()
         now_day = dt.strftime("%Y%m%d")
-        file_path = "C:\\Users\\JHOO\\iCloudDrive\\stock\\stock\\"
-        #file_name = "target_list_" + "190613" + "_T.csv"
-        file_name = file_path + "target_list_" + now_day[2:] + ".csv"
+        file_name = target_path + "\\target_list_" + now_day[2:] + ".csv"
         data_df = pd.read_csv(file_name)
         data_dict = data_df.to_dict(orient='records')
         data_result = dict()
         for data in data_dict:
-            data_result[data['code']] = {'OBJ': data['OBJ'], 'OBJ2': data['OBJ2'], 'name': data['name'], 'scale': data['scale'], '체결상태': 0, '주문상태': 0}
+            data_result[data['code']] = {'OBJ': data['OBJ'],
+                                         'OBJ2': data['OBJ2'],
+                                         'name': data['name'],
+                                         'scale': data['scale'],
+                                         '체결상태': 0,
+                                         '주문상태': 0}
             self.textBrowser.append("%s %s %s" %(data['code'], data['name'], data['OBJ']))
             if data['code'] in self.jangoData:
                 data_result[data['code']]['주문상태'] = 1
@@ -677,7 +683,7 @@ class MyWindow(QMainWindow, form_class):
                 telegram_ch("<매수알림>\n%s %s\n매수 기준가 %i원 이하" % (code, target_data['name'], objPrice))
                 self.objCur[code].Unsubscribe()
 
-                amount = divmod(3600000 * tgScale, adjPrice)[0]
+                amount = divmod(unit_price * tgScale, adjPrice)[0]
                 self.q.put((code, adjPrice, amount))
 
         elif conc_state == 1 and code in self.jangoData:
@@ -749,7 +755,7 @@ class BuyList:
     종가매매를 위해 매수내역 출력
     """
     def __init__(self):
-        self.name = data_path + "\\buy_list\\buy_" + today.strftime("%y%m%d") + ".csv"
+        self.name = buy_path + "\\buy_" + today.strftime("%y%m%d") + ".csv"
         self.file_init()
 
     def file_init(self):
