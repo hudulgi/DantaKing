@@ -676,7 +676,10 @@ class MyWindow(QMainWindow, form_class):
         curPrice = curData['cur']
 
         current_time = QTime.currentTime()
+        current_date = QDate.currentDate()
+
         text_time = current_time.toString("hh:mm:ss")
+        text_date = current_date.toString('yyyy-MM-dd')
         limit_time = QTime(15, 0, 0)
 
         if order_state == 0:
@@ -685,7 +688,7 @@ class MyWindow(QMainWindow, form_class):
                 self.textBrowser.append("목표 매수가 도달 %s @%s" % (code, text_time))
                 #telegram("목표 매수가 도달 %s %s @%s" % (code, target_data['name'], text_time))
                 telegram_ch("<매수알림>\n%s %s\n매수 기준가 %i원 이하" % (code, target_data['name'], objPrice))
-                telegram_share(f"{code},{objPrice},{adjPrice},{text_time}")
+                telegram_share(f"{code},{objPrice},{adjPrice},{text_date},{text_time}")
                 self.objCur[code].Unsubscribe()
 
                 amount = divmod(unit_price * tgScale, adjPrice)[0]
