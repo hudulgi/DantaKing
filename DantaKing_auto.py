@@ -15,7 +15,7 @@ form_class = uic.loadUiType("DantaKing.ui")[0]
 data_path = "C:\\CloudStation\\dt_data"
 buy_path = data_path + "\\daily_data\\buy_list"
 target_path = data_path + "\\daily_data\\target_list"
-unit_price = 3600000  # 종목 당 매수금액
+unit_price = 4500000  # 종목 당 매수금액
 today = datetime.datetime.now().date()
 
 ################################################
@@ -59,6 +59,10 @@ def telegram_ch(msg):
     bot.sendMessage("@dantaking_ch", msg)
     return True
 
+
+def telegram_share(msg):
+    bot.sendMessage(ch2, msg)
+    return True
 
 ################################################
 # CpEvent: 실시간 이벤트 수신 클래스
@@ -681,6 +685,7 @@ class MyWindow(QMainWindow, form_class):
                 self.textBrowser.append("목표 매수가 도달 %s @%s" % (code, text_time))
                 #telegram("목표 매수가 도달 %s %s @%s" % (code, target_data['name'], text_time))
                 telegram_ch("<매수알림>\n%s %s\n매수 기준가 %i원 이하" % (code, target_data['name'], objPrice))
+                telegram_share(f"{code},{objPrice},{adjPrice},{text_time}")
                 self.objCur[code].Unsubscribe()
 
                 amount = divmod(unit_price * tgScale, adjPrice)[0]
