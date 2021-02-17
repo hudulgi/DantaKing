@@ -51,18 +51,30 @@ def InitPlusCheck():
 ################################################
 # Telegram 메세지 전송 함수
 def telegram(msg):
-    bot.sendMessage(myId, msg)
-    return True
+    try:
+        bot.sendMessage(myId, msg)
+        return True
+    except telepot.exception.TelegramError:
+        print("텔레그램 전송 실패: 아이디 오류")
+        return False
 
 
 def telegram_ch(msg):
-    bot.sendMessage("@dantaking_ch", msg)
-    return True
+    try:
+        bot.sendMessage("@dantaking_ch", msg)
+        return True
+    except telepot.exception.TelegramError:
+        print("텔레그램 전송 실패: 채널아이디 오류")
+        return False
 
 
 def telegram_share(msg):
-    bot.sendMessage(ch2, msg)
-    return True
+    try:
+        bot.sendMessage(ch2, msg)
+        return True
+    except telepot.exception.TelegramError:
+        print("텔레그램 전송 실패: 채널아이디 오류")
+        return False
 
 ################################################
 # CpEvent: 실시간 이벤트 수신 클래스
