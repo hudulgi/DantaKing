@@ -68,14 +68,6 @@ def telegram_ch(msg):
         return False
 
 
-def telegram_share(msg):
-    try:
-        bot.sendMessage(ch2, msg)
-        return True
-    except telepot.exception.TelegramError:
-        print("텔레그램 전송 실패: 채널아이디 오류")
-        return False
-
 ################################################
 # CpEvent: 실시간 이벤트 수신 클래스
 class CpEvent:
@@ -692,6 +684,7 @@ class MyWindow(QMainWindow, form_class):
 
         text_time = current_time.toString("hh:mm:ss")
         text_date = current_date.toString('yyyy-MM-dd')
+        time_stamp = f"{text_date} {text_time}"
         limit_time = QTime(15, 0, 0)
 
         if order_state == 0:
@@ -700,11 +693,10 @@ class MyWindow(QMainWindow, form_class):
                 self.textBrowser.append("목표 매수가 도달 %s @%s" % (code, text_time))
                 #telegram("목표 매수가 도달 %s %s @%s" % (code, target_data['name'], text_time))
                 telegram_ch("<매수알림>\n%s %s\n매수 기준가 %i원 이하" % (code, target_data['name'], objPrice))
-                telegram_share(f"{code},{objPrice},{adjPrice},{text_date},{text_time}")
                 self.objCur[code].Unsubscribe()
 
                 amount = divmod(unit_price * tgScale, adjPrice)[0]
-                self.q.put((code, adjPrice, amount))
+                self.q.put((code, adjPrice, amount, objPrice, time_stamp))
 
         elif conc_state == 1 and code in self.jangoData:
             self.upjangoCurData(code)
@@ -771,9 +763,6 @@ def run_gui(q):
 # 매수내역 출력
 
 class BuyList:
-    """
-    종가매매를 위해 매수내역 출력
-    """
     def __init__(self):
         self.name = buy_path + "\\buy_" + today.strftime("%y%m%d") + ".csv"
         self.file_init()
@@ -793,7 +782,6 @@ def order(q):
     if InitPlusCheck() == False:
         return
     rpOrder = CpRPOrder()
-    buy_list = BuyList()
 
     while True:
         arg = q.get()
@@ -801,22 +789,35 @@ def order(q):
             print("shutting down")
             return
         print(arg)
-        code, price, amount = arg
+        code, price, amount, obj, time_stamp = arg
         while rpOrder.buyOrder(code, price, amount) is False:
             time.sleep(2)
-        buy_list.write(code)
+
+
+def buy_writer(q):
+    buy_list = BuyList()
+    while True:
+        arg = q.get()
+        if arg is None:
+            print("shutting down")
+            return
+        code, price, amount, obj, time_stamp = arg
+        buy_list.write(f"{time_stamp},{code},{obj},{price}")
 
 
 if __name__ == "__main__":
     main_q = Queue()
     process_gui = Process(target=run_gui, args=(main_q,))  # GUI 구동 프로세스
     process_order = Process(target=order, args=(main_q,))  # 주문 프로세스
+    process_write = Process(target=buy_writer, args=(main_q,))  # 주문 기록
     process_gui.start()
     process_order.start()
+    process_write.start()
 
     main_q.close()
     main_q.join_thread()
 
     process_gui.join()
     process_order.join()
+    process_write.join()
     print('end')
