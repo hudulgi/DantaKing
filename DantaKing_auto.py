@@ -782,6 +782,7 @@ def order(q):
     if InitPlusCheck() == False:
         return
     rpOrder = CpRPOrder()
+    buy_list = BuyList()
 
     while True:
         arg = q.get()
@@ -792,16 +793,6 @@ def order(q):
         code, price, amount, obj, time_stamp = arg
         while rpOrder.buyOrder(code, price, amount) is False:
             time.sleep(2)
-
-
-def buy_writer(q):
-    buy_list = BuyList()
-    while True:
-        arg = q.get()
-        if arg is None:
-            print("shutting down")
-            return
-        code, price, amount, obj, time_stamp = arg
         buy_list.write(f"{time_stamp},{code},{obj},{price}")
 
 
@@ -809,15 +800,12 @@ if __name__ == "__main__":
     main_q = Queue()
     process_gui = Process(target=run_gui, args=(main_q,))  # GUI 구동 프로세스
     process_order = Process(target=order, args=(main_q,))  # 주문 프로세스
-    process_write = Process(target=buy_writer, args=(main_q,))  # 주문 기록
     process_gui.start()
     process_order.start()
-    process_write.start()
 
     main_q.close()
     main_q.join_thread()
 
     process_gui.join()
     process_order.join()
-    process_write.join()
     print('end')
