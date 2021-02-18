@@ -770,7 +770,7 @@ class BuyList:
     def file_init(self):
         if not os.path.exists(self.name):  # 파일이 존재하지 않는 경우에만 초기화 진행
             with open(self.name, 'w') as f:
-                f.write("code\n")
+                f.write("Date,Code,Object,Price\n")
 
     def write(self, msg):
         with open(self.name, 'a') as f:
