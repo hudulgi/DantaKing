@@ -1,13 +1,6 @@
 
 .idea/
-<<<<<<< Updated upstream
 
 __pycache__/
 
-dt_alimi.py
-=======
-
-__pycache__/
-
-dt_alimi.py
->>>>>>> Stashed changes
+/dt_config.py
