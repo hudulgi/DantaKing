@@ -145,7 +145,7 @@ class CpEvent:
             info_txt = "%s %s %s %s %s" % (conc['체결플래그'], conc['매수매도'], conc['종목명'], conc['주문수량'], conc['주문가격'])
             self.caller.textBrowser.append(info_txt)
             if telegram_mode:
-                telg.send_msg(info_txt)
+                telg.send_msg(telegram_id, info_txt)
             self.caller.updateJangoCont(conc)
 
             return
